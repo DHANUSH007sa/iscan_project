@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Flask Backend",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/app.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "FLASK_ENV": "development",
+        "FLASK_DEBUG": "1",
+        "PISHIELD_SIMULATE_SCANS": "1"
+      },
+      "python": "${workspaceFolder}/backend/venv/bin/python"
+    },
+    {
+      "name": "Python: Flask Backend (Production)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/app.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "FLASK_ENV": "production"
+      },
+      "python": "${workspaceFolder}/backend/venv/bin/python"
+    }
+  ]
+}
