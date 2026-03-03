@@ -25,15 +25,17 @@ env.bak/
 venv.bak/
 .venv/
 
+# Backend database - NEVER commit
+backend/auth.db
+backend/auth.db-wal
+backend/auth.db-shm
+
 # Backend data
 backend/jobs/*.json
 backend/scans/*/
 backend/*.log
-backend/auth.db-wal
-backend/auth.db-shm
-
-# Keep auth.db but ignore temporary files
-!backend/auth.db
+!backend/jobs/.gitkeep
+!backend/scans/.gitkeep
 
 # Logs
 logs/

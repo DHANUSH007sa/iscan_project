@@ -14,16 +14,27 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Load environment variables from .env.local (if using python-dotenv)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv optional, use system environment variables
+
 # Check if we want to force root mode for full nmap capabilities
 FORCE_ROOT_MODE = os.environ.get("ISCAN_FORCE_ROOT", "0") == "1"
 
-# Directory setup
-BASE_DIR = "/home/teamwork/iscan_project"
+# Directory setup - Use dynamic path calculation (works on any system)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Allow override via environment variable
+BASE_DIR = os.environ.get("ISCAN_BASE_DIR", BASE_DIR)
+
 # Vite build output (npm run build) goes to dist/ under project root
 DIST_DIR = os.path.join(BASE_DIR, "dist")
 JOBS_DIR = os.path.join(BASE_DIR, "backend", "jobs")
 SCANS_DIR = os.path.join(BASE_DIR, "backend", "scans")
-AUTH_DB = os.path.join(BASE_DIR, "backend", "auth.db")
+# Allow database path override via environment variable
+AUTH_DB = os.environ.get("DATABASE_PATH", os.path.join(BASE_DIR, "backend", "auth.db"))
 SIMULATION_MODE = os.environ.get("PISHIELD_SIMULATE_SCANS", "0") == "1"
 
 # Scanner configuration
@@ -90,18 +101,22 @@ def init_auth_db():
                 print(f"Note: {e}")
         
         # Create default admin user if not exists
-        cursor = conn.execute("SELECT id FROM users WHERE email = ?", ("admin@gmail.com",))
+        admin_email = os.environ.get("ADMIN_EMAIL", "admin@example.com")
+        admin_password = os.environ.get("ADMIN_PASSWORD", "demo_password_change_in_production")
+        
+        cursor = conn.execute("SELECT id FROM users WHERE email = ?", (admin_email,))
         if not cursor.fetchone():
-            admin_password_hash = generate_password_hash("teamwork")
+            admin_password_hash = generate_password_hash(admin_password)
             conn.execute(
                 """
                 INSERT INTO users (first_name, last_name, email, date_of_birth, password_hash, created_at, is_admin)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                ("Admin", "User", "admin@gmail.com", "2000-01-01", admin_password_hash, time.time(), 1)
+                ("Admin", "User", admin_email, "2000-01-01", admin_password_hash, time.time(), 1)
             )
             conn.commit()
-            print("✅ Default admin user created (email: admin@gmail.com, password: teamwork)")
+            print(f"✅ Default admin user created (email: {admin_email})")
+            print("   ⚠️  Change default password in .env.local for production!")
     finally:
         conn.close()
 
@@ -482,8 +497,11 @@ def run_smbmap_scan(target_ip: str, scan_profile: str, scan_dir: str):
         }
     else:
         # Configure smbmap command based on scan profile - Windows share enumeration
-        # Use full path to smbmap in venv
-        smbmap_path = "/home/teamwork/iscan_project/backend/venv/bin/smbmap"
+        # Use dynamic path to smbmap instead of hardcoded
+        smbmap_path = os.path.join(BASE_DIR, "backend", "venv", "bin", "smbmap")
+        if not os.path.exists(smbmap_path):
+            smbmap_path = "smbmap"  # Fall back to system smbmap
+        
         if scan_profile == "small":
             # Small scan - basic share enumeration
             cmd = ["sudo", smbmap_path, "-H", target_ip, "-u", "null", "-p", ""]
